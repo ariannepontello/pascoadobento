@@ -3,300 +3,194 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Os Fragmentos do Ovo Mágico</title>
+<title>Arremesso Perfeito</title>
 
 <style>
-body {
+body{
     margin:0;
-    font-family: Arial;
-    background: linear-gradient(135deg,#ff9ff3,#48dbfb);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
+    background:linear-gradient(#ff9ff3,#48dbfb);
+    font-family:Arial;
+    text-align:center;
     color:#333;
 }
 
-.screen {display:none;}
-.active {display:block;text-align:center;}
-
-button{
-    padding:15px 25px;
-    font-size:18px;
-    border:none;
-    border-radius:12px;
-    background:#ff6b6b;
-    color:white;
-    box-shadow:0 4px 12px rgba(0,0,0,0.3);
-}
-
-/* PUZZLE */
-#puzzleBoard{
-    width:270px;
-    height:270px;
-    position:relative;
-    margin:auto;
-}
-
-.piece{
-    width:90px;
-    height:90px;
-    position:absolute;
-    background-image:url('https://i.imgur.com/8QfQ6QG.jpg');
-    background-size:270px 270px;
-    border-radius:10px;
-    box-shadow:0 3px 6px rgba(0,0,0,0.3);
-    touch-action:none;
-    transition:0.2s;
-}
-
-/* ovos */
-.egg{
-    width:70px;
-    height:90px;
-    border-radius:50%;
-    margin:8px;
-    display:inline-block;
-    box-shadow:0 0 10px rgba(0,0,0,0.3);
-}
-
-/* canvas */
 canvas{
-    background:#fff;
+    background:white;
+    display:block;
+    margin:auto;
     border-radius:12px;
     box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
+
+h1,h2{margin:10px;}
+
+button{
+    padding:12px 20px;
+    border:none;
+    border-radius:10px;
+    background:#ff6b6b;
+    color:white;
+    font-size:16px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="start" class="screen active">
-<h1>Os Fragmentos do Ovo Mágico</h1>
-<button onclick="start()">Começar</button>
-</div>
+<h1>Arremesso Perfeito 🥚</h1>
+<h2>Arraste para mirar e solte para lançar</h2>
 
-<div id="puzzle" class="screen">
-<h2>Monte a imagem</h2>
-<div id="puzzleBoard"></div>
-</div>
+<canvas id="game" width="350" height="500"></canvas>
 
-<div id="tap" class="screen">
-<h2>Toque nos ovos COLORIDOS</h2>
-<div id="eggs"></div>
-</div>
-
-<div id="maze" class="screen">
-<h2>Leve o ponto até o ovo</h2>
-<canvas id="c" width="300" height="300"></canvas>
-</div>
-
-<div id="end" class="screen">
-<h2>Incrível, Bento! Você reconstruiu o Ovo Mágico! 🐰💖</h2>
+<div id="end" style="display:none;">
+<h2>Incrível, Bento! Você mandou muito bem! 🐰💖</h2>
 <h3>FELIZ PÁSCOA, BENTO!</h3>
 <h1>Game Over</h1>
 <button onclick="location.reload()">Recomeçar</button>
 </div>
 
 <script>
-function show(id){
-document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-function start(){
-show("puzzle");
-initPuzzle();
-}
+let ball = {x:60, y:440, vx:0, vy:0, r:12, active:false};
+let gravity = 0.5;
+let dragging = false;
+let start = {x:0,y:0};
+let score = 0;
 
-/* ======================
-PUZZLE PROFISSIONAL
-====================== */
-let pieces=[];
-let size=90;
-
-function initPuzzle(){
-let board=document.getElementById("puzzleBoard");
-board.innerHTML="";
-pieces=[];
-
-for(let i=0;i<9;i++){
-let div=document.createElement("div");
-div.className="piece";
-
-let correctX=(i%3)*size;
-let correctY=Math.floor(i/3)*size;
-
-div.style.backgroundPosition=`-${correctX}px -${correctY}px`;
-
-div.correctX=correctX;
-div.correctY=correctY;
-
-div.style.left=Math.random()*180+"px";
-div.style.top=Math.random()*180+"px";
-
-drag(div);
-
-board.appendChild(div);
-pieces.push(div);
-}
-}
-
-function drag(el){
-let offsetX, offsetY;
-
-el.onpointerdown=e=>{
-offsetX=e.offsetX;
-offsetY=e.offsetY;
-el.setPointerCapture(e.pointerId);
-};
-
-el.onpointermove=e=>{
-if(e.pressure>0){
-el.style.left=(e.clientX-offsetX-100)+"px";
-el.style.top=(e.clientY-offsetY-100)+"px";
-}
-};
-
-el.onpointerup=e=>{
-let dx=parseInt(el.style.left)-el.correctX;
-let dy=parseInt(el.style.top)-el.correctY;
-
-if(Math.abs(dx)<30 && Math.abs(dy)<30){
-el.style.left=el.correctX+"px";
-el.style.top=el.correctY+"px";
-el.style.boxShadow="0 0 15px gold";
-el.locked=true;
-}
-
-checkPuzzle();
-};
-}
-
-function checkPuzzle(){
-if(pieces.every(p=>p.locked)){
-setTimeout(()=>{
-show("tap");
-startTap();
-},500);
-}
-}
-
-/* ======================
-FASE 2 MELHORADA
-====================== */
-function startTap(){
-let container=document.getElementById("eggs");
-container.innerHTML="";
-let score=0;
-
-function spawn(){
-if(score>=8){
-show("maze");
-startMaze();
-return;
-}
-
-let egg=document.createElement("div");
-let good=Math.random()>0.4;
-
-egg.className="egg";
-egg.style.background=good?"linear-gradient(yellow,orange)":"gray";
-
-egg.onclick=()=>{
-if(good){
-score++;
-egg.style.transform="scale(1.2)";
-setTimeout(()=>egg.remove(),200);
-}else{
-egg.style.background="red";
-}
-};
-
-container.appendChild(egg);
-
-setTimeout(()=>egg.remove(),1500);
-setTimeout(spawn,700);
-}
-
-spawn();
-}
-
-/* ======================
-LABIRINTO COM SWIPE
-====================== */
-function startMaze(){
-let c=document.getElementById("c");
-let ctx=c.getContext("2d");
-
-let player={x:20,y:20};
-let goal={x:260,y:260};
-
-let walls=[
-{x:50,y:0,w:20,h:250},
-{x:100,y:50,w:200,h:20},
-{x:150,y:100,w:20,h:200}
-];
+let target = {x:260, y:120, r:20};
 
 function draw(){
-ctx.clearRect(0,0,300,300);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-ctx.fillStyle="black";
-walls.forEach(w=>ctx.fillRect(w.x,w.y,w.w,w.h));
+    // alvo
+    ctx.beginPath();
+    ctx.arc(target.x,target.y,target.r,0,Math.PI*2);
+    ctx.fillStyle="gold";
+    ctx.fill();
 
-ctx.fillStyle="gold";
-ctx.beginPath();
-ctx.arc(goal.x,goal.y,10,0,Math.PI*2);
-ctx.fill();
+    // bola
+    ctx.beginPath();
+    ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+    ctx.fillStyle="orange";
+    ctx.fill();
 
-ctx.fillStyle="blue";
-ctx.beginPath();
-ctx.arc(player.x,player.y,8,0,Math.PI*2);
-ctx.fill();
+    // linha de mira
+    if(dragging){
+        ctx.beginPath();
+        ctx.moveTo(ball.x,ball.y);
+        ctx.lineTo(start.x,start.y);
+        ctx.strokeStyle="black";
+        ctx.stroke();
+    }
+
+    // score
+    ctx.fillStyle="black";
+    ctx.fillText("Pontos: "+score,10,20);
 }
 
-function move(dx,dy){
-let nx=player.x+dx;
-let ny=player.y+dy;
+function update(){
+    if(ball.active){
+        ball.vy += gravity;
+        ball.x += ball.vx;
+        ball.y += ball.vy;
 
-let collision=walls.some(w=>
-nx>w.x && nx<w.x+w.w && ny>w.y && ny<w.y+w.h
-);
+        // chão
+        if(ball.y > canvas.height){
+            ball.active = false;
+            resetBall();
+        }
 
-if(!collision){
-player.x=nx;
-player.y=ny;
+        // acerto
+        let dist = Math.hypot(ball.x-target.x, ball.y-target.y);
+        if(dist < ball.r + target.r){
+            score++;
+            nextTarget();
+            resetBall();
+
+            if(score >= 5){
+                endGame();
+            }
+        }
+    }
 }
 
-if(Math.hypot(player.x-goal.x,player.y-goal.y)<15){
-show("end");
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+loop();
+
+function resetBall(){
+    ball.x = 60;
+    ball.y = 440;
+    ball.vx = 0;
+    ball.vy = 0;
 }
 
-draw();
+function nextTarget(){
+    target.x = 200 + Math.random()*120;
+    target.y = 80 + Math.random()*200;
 }
 
-/* swipe */
-let startX,startY;
+function endGame(){
+    canvas.style.display = "none";
+    document.getElementById("end").style.display = "block";
+}
 
-c.ontouchstart=e=>{
-let t=e.touches[0];
-startX=t.clientX;
-startY=t.clientY;
+/* CONTROLES */
+canvas.onmousedown = e=>{
+    dragging = true;
+    start = getMouse(e);
 };
 
-c.ontouchend=e=>{
-let t=e.changedTouches[0];
-let dx=t.clientX-startX;
-let dy=t.clientY-startY;
-
-if(Math.abs(dx)>Math.abs(dy)){
-move(dx>0?20:-20,0);
-}else{
-move(0,dy>0?20:-20);
-}
+canvas.onmouseup = e=>{
+    if(dragging){
+        let end = getMouse(e);
+        ball.vx = (start.x - end.x)/5;
+        ball.vy = (start.y - end.y)/5;
+        ball.active = true;
+        dragging = false;
+    }
 };
 
-draw();
+canvas.onmousemove = e=>{
+    if(dragging){
+        start = getMouse(e);
+    }
+};
+
+function getMouse(e){
+    let rect = canvas.getBoundingClientRect();
+    return {
+        x:e.clientX - rect.left,
+        y:e.clientY - rect.top
+    };
+}
+
+/* MOBILE */
+canvas.ontouchstart = e=>{
+    dragging = true;
+    start = getTouch(e);
+};
+
+canvas.ontouchend = e=>{
+    let end = getTouch(e);
+    ball.vx = (start.x - end.x)/5;
+    ball.vy = (start.y - end.y)/5;
+    ball.active = true;
+    dragging = false;
+};
+
+function getTouch(e){
+    let rect = canvas.getBoundingClientRect();
+    let t = e.changedTouches[0];
+    return {
+        x:t.clientX - rect.left,
+        y:t.clientY - rect.top
+    };
 }
 </script>
 
