@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Os Fragmentos do Ovo Mágico</title>
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(#ff9ff3, #48dbfb);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        text-align: center;
+    }
+    .screen { display: none; }
+    .active { display: block; }
+    button {
+        padding: 15px 25px;
+        font-size: 18px;
+        border: none;
+        border-radius: 10px;
+        background: #ff6b6b;
+        color: white;
+        margin-top: 20px;
+    }
+    .puzzle {
+        display: grid;
+        grid-template-columns: repeat(3, 100px);
+        gap: 5px;
+        justify-content: center;
+    }
+    .piece {
+        width: 100px;
+        height: 100px;
+        background: white;
+        border: 2px solid #333;
+        font-size: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .egg {
+        width: 80px;
+        height: 100px;
+        border-radius: 50%;
+        margin: 10px;
+        display: inline-block;
+    }
+    canvas {
+        background: white;
+        border: 2px solid black;
+    }
+</style>
+</head>
+
+<body>
+
+<!-- INÍCIO -->
+<div id="start" class="screen active">
+    <h1>Os Fragmentos do Ovo Mágico</h1>
+    <button onclick="startGame()">Começar</button>
+</div>
+
+<!-- FASE 1 PUZZLE -->
+<div id="puzzle" class="screen">
+    <h2>Monte o quebra-cabeça</h2>
+    <div class="puzzle" id="puzzleGrid"></div>
+</div>
+
+<!-- FASE 2 -->
+<div id="tapGame" class="screen">
+    <h2>Toque nos ovos certos</h2>
+    <div id="eggs"></div>
+</div>
+
+<!-- FASE 3 -->
+<div id="drawGame" class="screen">
+    <h2>Desenhe o caminho</h2>
+    <canvas id="canvas" width="300" height="300"></canvas>
+</div>
+
+<!-- FINAL -->
+<div id="end" class="screen">
+    <h2>Incrível, Bento! Você reconstruiu o Ovo Mágico! 🐰💖</h2>
+    <h3>FELIZ PÁSCOA, BENTO!</h3>
+    <h1>Game Over</h1>
+    <button onclick="location.reload()">Recomeçar</button>
+</div>
+
+<script>
+let currentScreen = "start";
+
+function show(screen) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(screen).classList.add("active");
+}
+
+function startGame() {
+    show("puzzle");
+    initPuzzle();
+}
+
+/* =====================
+   FASE 1 - PUZZLE
+===================== */
+function initPuzzle() {
+    const grid = document.getElementById("puzzleGrid");
+    grid.innerHTML = "";
+
+    let pieces = ["🐰","🥚","✨","🌸","🌈","⭐","🍫","🐣","💖"];
+    pieces.sort(() => Math.random() - 0.5);
+
+    pieces.forEach((p, i) => {
+        let div = document.createElement("div");
+        div.className = "piece";
+        div.innerText = p;
+        div.onclick = () => {
+            div.style.background = "#55efc4";
+            checkPuzzle();
+        };
+        grid.appendChild(div);
+    });
+}
+
+function checkPuzzle() {
+    let correct = [...document.querySelectorAll(".piece")]
+        .every(p => p.style.background !== "");
+
+    if (correct) {
+        setTimeout(() => {
+            show("tapGame");
+            startTapGame();
+        }, 500);
+    }
+}
+
+/* =====================
+   FASE 2 - TAP
+===================== */
+function startTapGame() {
+    const eggsDiv = document.getElementById("eggs");
+    eggsDiv.innerHTML = "";
+    let score = 0;
+
+    function spawn() {
+        if (score >= 5) {
+            show("drawGame");
+            initDraw();
+            return;
+        }
+
+        let egg = document.createElement("div");
+        let isGood = Math.random() > 0.3;
+
+        egg.className = "egg";
+        egg.style.background = isGood ? "yellow" : "gray";
+
+        egg.onclick = () => {
+            if (isGood) {
+                score++;
+                egg.remove();
+            } else {
+                egg.style.background = "red";
+            }
+        };
+
+        eggsDiv.appendChild(egg);
+        setTimeout(() => egg.remove(), 1500);
+        setTimeout(spawn, 1000);
+    }
+
+    spawn();
+}
+
+/* =====================
+   FASE 3 - DESENHO
+===================== */
+function initDraw() {
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let drawing = false;
+
+    canvas.onmousedown = () => drawing = true;
+    canvas.onmouseup = () => {
+        drawing = false;
+        show("end");
+    };
+
+    canvas.onmousemove = (e) => {
+        if (!drawing) return;
+        ctx.fillStyle = "blue";
+        ctx.fillRect(e.offsetX, e.offsetY, 5, 5);
+    };
+
+    // suporte mobile
+    canvas.ontouchstart = () => drawing = true;
+    canvas.ontouchend = () => {
+        drawing = false;
+        show("end");
+    };
+
+    canvas.ontouchmove = (e) => {
+        let rect = canvas.getBoundingClientRect();
+        let touch = e.touches[0];
+        ctx.fillRect(touch.clientX - rect.left, touch.clientY - rect.top, 5, 5);
+    };
+}
+</script>
+
+</body>
+</html>
