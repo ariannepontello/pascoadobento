@@ -4,209 +4,299 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Os Fragmentos do Ovo Mágico</title>
+
 <style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background: linear-gradient(#ff9ff3, #48dbfb);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        text-align: center;
-    }
-    .screen { display: none; }
-    .active { display: block; }
-    button {
-        padding: 15px 25px;
-        font-size: 18px;
-        border: none;
-        border-radius: 10px;
-        background: #ff6b6b;
-        color: white;
-        margin-top: 20px;
-    }
-    .puzzle {
-        display: grid;
-        grid-template-columns: repeat(3, 100px);
-        gap: 5px;
-        justify-content: center;
-    }
-    .piece {
-        width: 100px;
-        height: 100px;
-        background: white;
-        border: 2px solid #333;
-        font-size: 30px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .egg {
-        width: 80px;
-        height: 100px;
-        border-radius: 50%;
-        margin: 10px;
-        display: inline-block;
-    }
-    canvas {
-        background: white;
-        border: 2px solid black;
-    }
+body {
+    margin:0;
+    font-family: Arial;
+    background: linear-gradient(135deg,#ff9ff3,#48dbfb);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    color:#333;
+}
+
+.screen {display:none;}
+.active {display:block;text-align:center;}
+
+button{
+    padding:15px 25px;
+    font-size:18px;
+    border:none;
+    border-radius:12px;
+    background:#ff6b6b;
+    color:white;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* PUZZLE */
+#puzzleBoard{
+    width:270px;
+    height:270px;
+    position:relative;
+    margin:auto;
+}
+
+.piece{
+    width:90px;
+    height:90px;
+    position:absolute;
+    background-image:url('https://i.imgur.com/8QfQ6QG.jpg');
+    background-size:270px 270px;
+    border-radius:10px;
+    box-shadow:0 3px 6px rgba(0,0,0,0.3);
+    touch-action:none;
+    transition:0.2s;
+}
+
+/* ovos */
+.egg{
+    width:70px;
+    height:90px;
+    border-radius:50%;
+    margin:8px;
+    display:inline-block;
+    box-shadow:0 0 10px rgba(0,0,0,0.3);
+}
+
+/* canvas */
+canvas{
+    background:#fff;
+    border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
 </style>
 </head>
 
 <body>
 
-<!-- INÍCIO -->
 <div id="start" class="screen active">
-    <h1>Os Fragmentos do Ovo Mágico</h1>
-    <button onclick="startGame()">Começar</button>
+<h1>Os Fragmentos do Ovo Mágico</h1>
+<button onclick="start()">Começar</button>
 </div>
 
-<!-- FASE 1 PUZZLE -->
 <div id="puzzle" class="screen">
-    <h2>Monte o quebra-cabeça</h2>
-    <div class="puzzle" id="puzzleGrid"></div>
+<h2>Monte a imagem</h2>
+<div id="puzzleBoard"></div>
 </div>
 
-<!-- FASE 2 -->
-<div id="tapGame" class="screen">
-    <h2>Toque nos ovos certos</h2>
-    <div id="eggs"></div>
+<div id="tap" class="screen">
+<h2>Toque nos ovos COLORIDOS</h2>
+<div id="eggs"></div>
 </div>
 
-<!-- FASE 3 -->
-<div id="drawGame" class="screen">
-    <h2>Desenhe o caminho</h2>
-    <canvas id="canvas" width="300" height="300"></canvas>
+<div id="maze" class="screen">
+<h2>Leve o ponto até o ovo</h2>
+<canvas id="c" width="300" height="300"></canvas>
 </div>
 
-<!-- FINAL -->
 <div id="end" class="screen">
-    <h2>Incrível, Bento! Você reconstruiu o Ovo Mágico! 🐰💖</h2>
-    <h3>FELIZ PÁSCOA, BENTO!</h3>
-    <h1>Game Over</h1>
-    <button onclick="location.reload()">Recomeçar</button>
+<h2>Incrível, Bento! Você reconstruiu o Ovo Mágico! 🐰💖</h2>
+<h3>FELIZ PÁSCOA, BENTO!</h3>
+<h1>Game Over</h1>
+<button onclick="location.reload()">Recomeçar</button>
 </div>
 
 <script>
-let currentScreen = "start";
-
-function show(screen) {
-    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-    document.getElementById(screen).classList.add("active");
+function show(id){
+document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
 }
 
-function startGame() {
-    show("puzzle");
-    initPuzzle();
+function start(){
+show("puzzle");
+initPuzzle();
 }
 
-/* =====================
-   FASE 1 - PUZZLE
-===================== */
-function initPuzzle() {
-    const grid = document.getElementById("puzzleGrid");
-    grid.innerHTML = "";
+/* ======================
+PUZZLE PROFISSIONAL
+====================== */
+let pieces=[];
+let size=90;
 
-    let pieces = ["🐰","🥚","✨","🌸","🌈","⭐","🍫","🐣","💖"];
-    pieces.sort(() => Math.random() - 0.5);
+function initPuzzle(){
+let board=document.getElementById("puzzleBoard");
+board.innerHTML="";
+pieces=[];
 
-    pieces.forEach((p, i) => {
-        let div = document.createElement("div");
-        div.className = "piece";
-        div.innerText = p;
-        div.onclick = () => {
-            div.style.background = "#55efc4";
-            checkPuzzle();
-        };
-        grid.appendChild(div);
-    });
+for(let i=0;i<9;i++){
+let div=document.createElement("div");
+div.className="piece";
+
+let correctX=(i%3)*size;
+let correctY=Math.floor(i/3)*size;
+
+div.style.backgroundPosition=`-${correctX}px -${correctY}px`;
+
+div.correctX=correctX;
+div.correctY=correctY;
+
+div.style.left=Math.random()*180+"px";
+div.style.top=Math.random()*180+"px";
+
+drag(div);
+
+board.appendChild(div);
+pieces.push(div);
+}
 }
 
-function checkPuzzle() {
-    let correct = [...document.querySelectorAll(".piece")]
-        .every(p => p.style.background !== "");
+function drag(el){
+let offsetX, offsetY;
 
-    if (correct) {
-        setTimeout(() => {
-            show("tapGame");
-            startTapGame();
-        }, 500);
-    }
+el.onpointerdown=e=>{
+offsetX=e.offsetX;
+offsetY=e.offsetY;
+el.setPointerCapture(e.pointerId);
+};
+
+el.onpointermove=e=>{
+if(e.pressure>0){
+el.style.left=(e.clientX-offsetX-100)+"px";
+el.style.top=(e.clientY-offsetY-100)+"px";
+}
+};
+
+el.onpointerup=e=>{
+let dx=parseInt(el.style.left)-el.correctX;
+let dy=parseInt(el.style.top)-el.correctY;
+
+if(Math.abs(dx)<30 && Math.abs(dy)<30){
+el.style.left=el.correctX+"px";
+el.style.top=el.correctY+"px";
+el.style.boxShadow="0 0 15px gold";
+el.locked=true;
 }
 
-/* =====================
-   FASE 2 - TAP
-===================== */
-function startTapGame() {
-    const eggsDiv = document.getElementById("eggs");
-    eggsDiv.innerHTML = "";
-    let score = 0;
-
-    function spawn() {
-        if (score >= 5) {
-            show("drawGame");
-            initDraw();
-            return;
-        }
-
-        let egg = document.createElement("div");
-        let isGood = Math.random() > 0.3;
-
-        egg.className = "egg";
-        egg.style.background = isGood ? "yellow" : "gray";
-
-        egg.onclick = () => {
-            if (isGood) {
-                score++;
-                egg.remove();
-            } else {
-                egg.style.background = "red";
-            }
-        };
-
-        eggsDiv.appendChild(egg);
-        setTimeout(() => egg.remove(), 1500);
-        setTimeout(spawn, 1000);
-    }
-
-    spawn();
+checkPuzzle();
+};
 }
 
-/* =====================
-   FASE 3 - DESENHO
-===================== */
-function initDraw() {
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    let drawing = false;
+function checkPuzzle(){
+if(pieces.every(p=>p.locked)){
+setTimeout(()=>{
+show("tap");
+startTap();
+},500);
+}
+}
 
-    canvas.onmousedown = () => drawing = true;
-    canvas.onmouseup = () => {
-        drawing = false;
-        show("end");
-    };
+/* ======================
+FASE 2 MELHORADA
+====================== */
+function startTap(){
+let container=document.getElementById("eggs");
+container.innerHTML="";
+let score=0;
 
-    canvas.onmousemove = (e) => {
-        if (!drawing) return;
-        ctx.fillStyle = "blue";
-        ctx.fillRect(e.offsetX, e.offsetY, 5, 5);
-    };
+function spawn(){
+if(score>=8){
+show("maze");
+startMaze();
+return;
+}
 
-    // suporte mobile
-    canvas.ontouchstart = () => drawing = true;
-    canvas.ontouchend = () => {
-        drawing = false;
-        show("end");
-    };
+let egg=document.createElement("div");
+let good=Math.random()>0.4;
 
-    canvas.ontouchmove = (e) => {
-        let rect = canvas.getBoundingClientRect();
-        let touch = e.touches[0];
-        ctx.fillRect(touch.clientX - rect.left, touch.clientY - rect.top, 5, 5);
-    };
+egg.className="egg";
+egg.style.background=good?"linear-gradient(yellow,orange)":"gray";
+
+egg.onclick=()=>{
+if(good){
+score++;
+egg.style.transform="scale(1.2)";
+setTimeout(()=>egg.remove(),200);
+}else{
+egg.style.background="red";
+}
+};
+
+container.appendChild(egg);
+
+setTimeout(()=>egg.remove(),1500);
+setTimeout(spawn,700);
+}
+
+spawn();
+}
+
+/* ======================
+LABIRINTO COM SWIPE
+====================== */
+function startMaze(){
+let c=document.getElementById("c");
+let ctx=c.getContext("2d");
+
+let player={x:20,y:20};
+let goal={x:260,y:260};
+
+let walls=[
+{x:50,y:0,w:20,h:250},
+{x:100,y:50,w:200,h:20},
+{x:150,y:100,w:20,h:200}
+];
+
+function draw(){
+ctx.clearRect(0,0,300,300);
+
+ctx.fillStyle="black";
+walls.forEach(w=>ctx.fillRect(w.x,w.y,w.w,w.h));
+
+ctx.fillStyle="gold";
+ctx.beginPath();
+ctx.arc(goal.x,goal.y,10,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle="blue";
+ctx.beginPath();
+ctx.arc(player.x,player.y,8,0,Math.PI*2);
+ctx.fill();
+}
+
+function move(dx,dy){
+let nx=player.x+dx;
+let ny=player.y+dy;
+
+let collision=walls.some(w=>
+nx>w.x && nx<w.x+w.w && ny>w.y && ny<w.y+w.h
+);
+
+if(!collision){
+player.x=nx;
+player.y=ny;
+}
+
+if(Math.hypot(player.x-goal.x,player.y-goal.y)<15){
+show("end");
+}
+
+draw();
+}
+
+/* swipe */
+let startX,startY;
+
+c.ontouchstart=e=>{
+let t=e.touches[0];
+startX=t.clientX;
+startY=t.clientY;
+};
+
+c.ontouchend=e=>{
+let t=e.changedTouches[0];
+let dx=t.clientX-startX;
+let dy=t.clientY-startY;
+
+if(Math.abs(dx)>Math.abs(dy)){
+move(dx>0?20:-20,0);
+}else{
+move(0,dy>0?20:-20);
+}
+};
+
+draw();
 }
 </script>
 
